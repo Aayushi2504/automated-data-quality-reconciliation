@@ -1,0 +1,9 @@
+.env
+__pycache__/
+.pytest_cache/
+.venv/
+demo/*.db
+reports/*
+!reports/.gitkeep
+!reports/sample_summary.md
+.DS_Store

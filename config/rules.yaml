@@ -1,0 +1,65 @@
+# Declarative rule set. Add datasets/rules here without touching Python.
+# severity: error (fails the run) | warn (reported only)
+
+datasets:
+  orders:
+    connection: source
+    table: orders
+    primary_key: [order_id]
+    required_columns: [order_id, customer_id, order_date, order_total, status]
+    unique: [[order_id]]
+    allowed_values:
+      status: [pending, shipped, delivered, cancelled]
+    business_rules:
+      - name: non_negative_total
+        expression: "order_total < 0"            # rows matching are violations
+        severity: error
+      - name: delivered_requires_ship_date
+        expression: "status == 'delivered' and shipped_date.isna()"
+        severity: error
+      - name: ship_before_order
+        expression: "shipped_date < order_date"
+        severity: error
+      - name: suspiciously_large_order
+        expression: "order_total > 10000"
+        severity: warn
+    referential:
+      - column: customer_id
+        ref_connection: source
+        ref_table: customers
+        ref_column: customer_id
+        severity: error
+    profile_thresholds:
+      max_null_pct: 0.05
+
+  customers:
+    connection: source
+    table: customers
+    primary_key: [customer_id]
+    required_columns: [customer_id, email, country]
+    unique: [[customer_id], [email]]
+    business_rules:
+      - name: valid_email_shape
+        expression: "email.notna() and not email.str.contains('@')"
+        severity: error
+    profile_thresholds:
+      max_null_pct: 0.05
+
+reconciliation:
+  - name: orders_source_to_warehouse
+    source: {connection: source, table: orders}
+    target: {connection: target, table: dw_orders}
+    key: [order_id]
+    row_count: true
+    column_sums: [order_total]
+    compare_columns: [customer_id, order_total, status]
+    tolerance: 0.01
+    severity: error
+
+  - name: customers_source_to_warehouse
+    source: {connection: source, table: customers}
+    target: {connection: target, table: dw_customers}
+    key: [customer_id]
+    row_count: true
+    compare_columns: [email, country]
+    severity: error

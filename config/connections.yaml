@@ -1,0 +1,6 @@
+# SQLAlchemy URLs. Swap for Snowflake / Postgres / BigQuery URLs in real use,
+# e.g. snowflake://user:pass@account/db/schema?warehouse=WH
+connections:
+  source: sqlite:///demo/source.db
+  target: sqlite:///demo/target.db
+audit_connection: target     # where exception + run summary tables are written
